@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Career Copilot</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  margin: 0;
+  padding: 30px 15px;
+  color: #1e293b;
+}
+.container {
+  max-width: 750px;
+  margin: auto;
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px #0001;
+}
+h1 { color: #4f46e5; }
+p { color: #64748b; }
+label { display: block; margin-top: 18px; font-weight: bold; }
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  height: 130px;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+}
+button {
+  margin-top: 20px;
+  padding: 13px 20px;
+  background: #4f46e5;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.6; cursor: wait; }
+#results {
+  margin-top: 25px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.score { font-size: 25px; font-weight: bold; color: #4f46e5; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>AI Career Copilot</h1>
+  <p>Check how well your resume matches a job description.</p>
+
+  <label for="resume">Paste your resume</label>
+  <textarea id="resume" placeholder="Enter your resume text here..."></textarea>
+
+  <label for="job">Paste the job description</label>
+  <textarea id="job" placeholder="Enter the job description here..."></textarea>
+
+  <button id="btn" onclick="analyze()">Analyze Resume</button>
+  <div id="results"></div>
+</div>
+
+<script>
+function addResult(parent, tag, text, className) {
+  const el = document.createElement(tag);
+  el.textContent = text;
+  if (className) el.className = className;
+  parent.appendChild(el);
+}
+
+function addList(parent, items) {
+  const ul = document.createElement("ul");
+  (items || []).forEach(item => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    ul.appendChild(li);
+  });
+  parent.appendChild(ul);
+}
+
+async function analyze() {
+  const resume = document.getElementById("resume").value.trim();
+  const job = document.getElementById("job").value.trim();
+  const results = document.getElementById("results");
+  const btn = document.getElementById("btn");
+
+  if (!resume || !job) {
+    results.textContent = "Please enter both your resume and the job description.";
+    return;
+  }
+
+  btn.disabled = true;
+  results.textContent = "Analyzing with AI... this takes a few seconds.";
+
+  try {
+    // Calls YOUR server function. No API key exists in this file.
+    const response = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resume, job })
+    });
+
+    const out = await response.json();
+    if (!response.ok) {
+      throw new Error(out.error || "Request failed");
+    }
+
+    results.replaceChildren();
+    addResult(results, "h2", "Your Resume Analysis");
+    addResult(results, "p", "ATS Score: " + out.ats_score + "/100", "score");
+    addResult(results, "p", out.summary || "");
+    addResult(results, "h3", "Matched Keywords");
+    addResult(results, "p", (out.matched_keywords || []).join(", ") || "None found.");
+    addResult(results, "h3", "Missing Keywords");
+    addResult(results, "p", (out.missing_keywords || []).join(", ") || "None found.");
+    addResult(results, "h3", "Improvements");
+    addList(results, out.improvements);
+  } catch (err) {
+    console.error(err);
+    results.textContent = "Error: " + err.message +
+      " (press F12 and check the Console for details)";
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
